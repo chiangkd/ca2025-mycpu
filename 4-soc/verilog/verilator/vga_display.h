@@ -36,6 +36,9 @@ public:
 
     bool init()
     {
+        if (enabled)
+            return true;
+
         auto try_init = []() { return SDL_Init(SDL_INIT_VIDEO) == 0; };
 
         if (!try_init()) {
@@ -87,8 +90,7 @@ public:
         }
 
         enabled = true;
-        printf("✅ SDL2 VGA Display initialized (%dx%d)\n", VGA_WIDTH,
-               VGA_HEIGHT);
+        printf("SDL2 VGA Display initialized (%dx%d)\n", VGA_WIDTH, VGA_HEIGHT);
         return true;
     }
 

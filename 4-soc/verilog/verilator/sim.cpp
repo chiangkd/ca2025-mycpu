@@ -20,6 +20,9 @@
 #include "VTop.h"
 #include "vga_display.h"
 
+static constexpr uint32_t UART_TEST_PASS = 0x0F;  // 4 subtests
+static constexpr uint32_t VGA_TEST_PASS = 0x3F;   // 6 subtests
+
 // UART terminal interface for interactive mode
 // Simulates 115200 baud, 8N2 (8 data bits, no parity, 2 stop bits)
 class UartTerminal
@@ -47,7 +50,7 @@ class UartTerminal
     static constexpr uint32_t HALF_BIT = CYCLES_PER_BIT / 2;
 
     // Terminal settings
-    struct termios orig_termios;
+    struct termios orig_termios{};
     bool raw_mode = false;
     bool is_tty = false;
 
@@ -65,7 +68,14 @@ public:
         is_tty = isatty(STDIN_FILENO);
         // Set stdin to non-blocking
         int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
-        fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+        if (flags == -1) {
+            perror("fcntl F_GETFL");
+            return;
+        }
+        if (fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK) == -1) {
+            perror("fcntl F_SETFL");
+            return;
+        }
         // Configure raw mode only for TTY (skip for piped input)
         if (is_tty) {
             tcgetattr(STDIN_FILENO, &orig_termios);
@@ -528,7 +538,7 @@ int main(int argc, char **argv)
                 if (mem_address == 0x100 && mem_write_data == 0xCAFEF00D) {
                     uint32_t r = mem.read(0x104);
                     // Accept 0xF (UART) or 0x3F (VGA) as passing
-                    if (r == 0x3F || r == 0xF)
+                    if (r == VGA_TEST_PASS || r == UART_TEST_PASS)
                         std::cout << "\nTEST PASSED (result=0x" << std::hex << r
                                   << std::dec << ")\n";
                     else
